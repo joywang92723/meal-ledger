@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>英傑哆欠錢還錢小本本</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --card: #FFFDFA;
+    --ink: #141210;
+    --ink-strong: #000000;
+    --ink-soft: #6B584A;
+    --border: #E7DED2;
+    --accent: #5B3E29;
+    --accent-2: #74533A;
+    --red: #A23B2E;
+    --red-bg: rgba(162, 59, 46, 0.08);
+    --green: #2E6B49;
+    --green-bg: rgba(46, 107, 73, 0.08);
+    --shadow: rgba(59, 42, 30, 0.07);
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    line-height: 1.6;
+    min-height: 100%;
+  }
+  .num { font-family: 'IBM Plex Mono', 'Noto Sans TC', monospace; font-variant-numeric: tabular-nums; }
+
+  header.top {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: calc(1.8rem + env(safe-area-inset-top, 0px)) 1.4rem 0.6rem;
+  }
+  .top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  header.top h1 {
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 700;
+    color: var(--ink-strong);
+    font-size: clamp(1.4rem, 4vw, 1.85rem);
+    margin: 0 0 0.3rem;
+  }
+  header.top p.subtitle { margin: 0; color: var(--ink-soft); font-size: 0.9rem; }
+  .storage-badge {
+    font-size: 0.72rem;
+    padding: 0.28rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--ink-soft);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .storage-badge.local { border-color: var(--red); color: var(--red); }
+  .storage-badge.public { border-color: var(--green); color: var(--green); }
+
+  .hero { margin-top: 1.3rem; display: flex; align-items: baseline; gap: 0.8rem; flex-wrap: wrap; }
+  .hero-num { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: clamp(2rem, 7vw, 2.7rem); line-height: 1; }
+  .hero-num.owe { color: var(--red); }
+  .hero-num.clear { color: var(--green); }
+  .hero-label { font-size: 0.92rem; color: var(--ink-soft); }
+  .hero-sub { width: 100%; margin-top: 0.3rem; font-size: 0.84rem; color: var(--ink-soft); }
+
+  .page { max-width: 880px; margin: 0 auto; padding: 1.3rem 1.4rem calc(3rem + env(safe-area-inset-bottom, 0px)); }
+
+  section.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 1px 3px var(--shadow);
+    margin-bottom: 1.4rem;
+    overflow: hidden;
+  }
+  .card-head {
+    padding: 1rem 1.2rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .card-head h2 { font-family: 'Noto Serif TC', serif; font-size: 1.05rem; margin: 0; color: var(--ink-strong); font-weight: 700; }
+  .card-head .hint { font-size: 0.78rem; color: var(--ink-soft); }
+
+  .icon-btn {
+    width: 2rem; height: 2rem; border-radius: 999px; border: 1px solid var(--border);
+    background: transparent; color: var(--ink-strong); font-size: 1.2rem; line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+  }
+  .icon-btn:hover { background: rgba(91, 62, 41, 0.1); border-color: var(--accent); }
+
+  .add-person-row { display: flex; gap: 0.6rem; padding: 0.9rem 1.2rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .add-person-row input[type="text"] { flex: 1; min-width: 160px; }
+
+  .delete-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+    padding: 0.7rem 1.2rem; border-bottom: 1px solid var(--border);
+    background: var(--red-bg); flex-wrap: wrap;
+  }
+  .delete-bar .count { font-size: 0.85rem; color: var(--red); }
+  .delete-bar .actions { display: flex; gap: 0.5rem; }
+  .p-check { width: 1.05rem; height: 1.05rem; flex-shrink: 0; accent-color: var(--red); }
+
+  .empty-state { padding: 1.6rem 1.2rem; text-align: center; color: var(--ink-soft); font-size: 0.9rem; }
+
+  input, select {
+    font-family: inherit;
+    font-size: 0.92rem;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--ink);
+    width: 100%;
+  }
+  input:focus, select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button {
+    font-family: inherit; font-size: 0.88rem; font-weight: 500; padding: 0.5rem 0.9rem;
+    border-radius: 6px; border: 1px solid transparent; cursor: pointer;
+    background: var(--accent); color: #FBF3E6;
+  }
+  button:hover { background: var(--accent-2); }
+  button.secondary { background: transparent; color: var(--ink); border-color: var(--border); }
+  button.ghost { background: transparent; color: var(--ink-soft); border: none; padding: 0.3rem 0.5rem; font-size: 0.82rem; text-decoration: underline; }
+  button.small { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+
+  .status-pill { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.78rem; }
+  .status-owe { background: var(--red-bg); color: var(--red); }
+  .status-credit { background: var(--green-bg); color: var(--green); }
+  .status-even { background: var(--border); color: var(--ink-soft); }
+
+  details.person { border-bottom: 1px solid var(--border); }
+  details.person:last-child { border-bottom: none; }
+  details.person summary {
+    list-style: none; cursor: pointer; padding: 0.85rem 1.2rem;
+    display: flex; justify-content: space-between; align-items: center; gap: 0.8rem;
+  }
+  details.person summary::-webkit-details-marker { display: none; }
+  .p-name-row { display: flex; align-items: center; gap: 0.55rem; min-width: 0; }
+  .p-name { font-weight: 700; color: var(--ink-strong); font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .p-caret { color: var(--ink-soft); transition: transform 0.15s; flex-shrink: 0; }
+  details[open] > summary .p-caret { transform: rotate(90deg); }
+  .p-balance { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 1rem; white-space: nowrap; }
+
+  .person-body { padding: 0 1.2rem 1.1rem; }
+  .person-toolbar { display: flex; gap: 0.5rem; margin: 0.2rem 0 0.8rem; }
+  .inline-form { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+  .inline-form input { width: auto; }
+
+  table.history { width: 100%; border-collapse: collapse; }
+  table.history th { text-align: left; font-size: 0.74rem; font-weight: 500; color: var(--ink-soft); padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--border); }
+  table.history td { padding: 0.45rem 0.5rem; font-size: 0.88rem; border-bottom: 1px dashed var(--border); vertical-align: middle; }
+  table.history tr:last-child td { border-bottom: none; }
+  td.amt { font-family: 'IBM Plex Mono', monospace; text-align: right; white-space: nowrap; }
+  .amt.pos { color: var(--green); }
+  .amt.neg { color: var(--red); }
+  .row-actions { display: flex; gap: 0.4rem; justify-content: flex-end; white-space: nowrap; }
+  .edit-record-row td { padding: 0.5rem; }
+  .edit-grid { display: grid; grid-template-columns: 6.5rem 8rem 6rem 8rem auto auto; gap: 0.4rem; align-items: center; }
+  .item-field-wrap { display: block; min-width: 0; }
+  .item-field-wrap .item-method, .item-field-wrap .item-text { width: 100%; }
+  .type-tag { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.76rem; }
+  .type-credit { background: var(--green-bg); color: var(--green); }
+  .type-order { background: var(--red-bg); color: var(--red); }
+
+  .entry-form { display: grid; grid-template-columns: 8rem 8.5rem 8rem 7rem 8.5rem auto; gap: 0.55rem; padding: 1rem 1.2rem; align-items: stretch; }
+  .entry-form button { grid-column: span 1; }
+  .entry-empty { padding: 1rem 1.2rem; color: var(--ink-soft); font-size: 0.9rem; }
+
+  footer { text-align: center; font-size: 0.78rem; color: var(--ink-soft); padding-top: 0.6rem; }
+  footer button.ghost { font-size: 0.78rem; }
+
+  .confirm-overlay {
+    position: fixed; inset: 0; background: rgba(20, 18, 16, 0.45);
+    display: flex; align-items: center; justify-content: center;
+    padding: 1.2rem; z-index: 1000;
+  }
+  .confirm-box {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 1.3rem 1.3rem 1.1rem; max-width: 22rem; width: 100%;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  }
+  .confirm-msg { margin: 0 0 1.1rem; white-space: pre-wrap; font-size: 0.92rem; color: var(--ink); line-height: 1.65; }
+  .confirm-actions { display: flex; justify-content: flex-end; gap: 0.6rem; }
+
+  .toast-stack {
+    position: fixed; left: 50%; bottom: calc(1.2rem + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%); display: flex; flex-direction: column; gap: 0.5rem;
+    z-index: 1100; width: min(90vw, 22rem); align-items: center;
+  }
+  .toast {
+    background: var(--ink-strong); color: var(--bg); font-size: 0.86rem;
+    padding: 0.6rem 1rem; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+    text-align: center; white-space: pre-wrap;
+  }
+
+  @media (max-width: 700px) {
+    .entry-form { grid-template-columns: 1fr 1fr; }
+    .entry-form button { grid-column: span 2; }
+  }
+  @media (max-width: 560px) {
+    .edit-grid { grid-template-columns: 1fr 1fr; }
+    .edit-grid button { grid-column: span 1; }
+    table.history thead { display: none; }
+    table.history, table.history tbody, table.history tr, table.history td { display: block; width: 100%; }
+    table.history tr { padding: 0.5rem 0; border-bottom: 1px dashed var(--border); }
+    table.history td { border-bottom: none; padding: 0.15rem 0; }
+    td.amt { text-align: left; }
+    .row-actions { justify-content: flex-start; margin-top: 0.3rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-row">
+    <div>
+      <h1>英傑哆欠錢還錢小本本</h1>
+      <p class="subtitle">亦珊亦珊亮晶晶 誰沒還錢要小心</p>
+    </div>
+    <span class="storage-badge" id="storageBadge">連線中…</span>
+  </div>
+  <div class="hero">
+    <span class="hero-num num" id="heroTotal">NT$0</span>
+    <span class="hero-label">目前應收總額</span>
+    <span class="hero-sub" id="heroSub"></span>
+  </div>
+</header>
+
+<div class="page">
+
+  <section class="card">
+    <div class="card-head">
+      <h2>欠錢排行榜</h2>
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <span class="hint" id="overviewHint">點姓名可展開紀錄</span>
+        <button type="button" class="icon-btn" id="addPersonToggle" title="新增人員" aria-label="新增人員">＋</button>
+        <button type="button" class="icon-btn" id="deleteModeToggle" title="刪除人員" aria-label="刪除人員">－</button>
+      </div>
+    </div>
+    <div id="addPersonRow" style="display:none"></div>
+    <div id="deleteBar" style="display:none"></div>
+    <div id="peopleWrap"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>新增紀錄</h2></div>
+    <div id="entryWrap"></div>
+  </section>
+
+  <footer>
+    <span id="footerNote"></span>
+    &nbsp;·&nbsp;
+    <button class="ghost" id="exportBtn" type="button">匯出備份</button>
+    &nbsp;·&nbsp;
+    <button class="ghost" id="importBtn" type="button">匯入備份</button>
+    <input type="file" id="importFile" accept="application/json" style="display:none">
+    &nbsp;·&nbsp;
+    <button class="ghost" id="settleBtn" type="button" title="清除所有交易紀錄、讓每個人的餘額歸零，但保留人員名單">還原歸零</button>
+    &nbsp;·&nbsp;
+    <button class="ghost" id="resetBtn" type="button">清空所有資料</button>
+  </footer>
+
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<!-- 這個網頁會把目前的資料存進自己身上並重新發布，讓任何拿到連結的人（不需要 Claude 帳號）
+     打開時都看到最新狀態；不要手動編輯這個標籤內容。 -->
+<script type="application/json" id="ledgerData">{"people":[{"id":"idmub7ypjsymuqwk","name":"joy","createdAt":1789993584856},{"id":"idmub8c9oj6hujp2","name":"Ray","createdAt":1789994217475},{"id":"idmub8cezsyopamb","name":"+1","createdAt":1789994224360},{"id":"idmub8cl50rl5mxo","name":"Shan","createdAt":1789994232324},{"id":"idmub8epl4x64ape","name":"季剛","createdAt":1789994331400},{"id":"idmub8ewllxk78wm","name":"楚喬","createdAt":1789994340489}],"records":[{"id":"idmub7z9eej2d0rq","personId":"idmub7ypjsymuqwk","type":"order","date":"2026-09-21","item":"累積","amount":721,"createdAt":1789993610582},{"id":"idmub8d49rfymlrl","personId":"idmub8cezsyopamb","type":"order","date":"2026-09-21","item":"累積","amount":131,"createdAt":1789994257119},{"id":"idmub8donhungwgr","personId":"idmub8cl50rl5mxo","type":"order","date":"2026-09-21","item":"累積","amount":162,"createdAt":1789994283533}]}</script>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- custom confirm/toast (native confirm()/alert() are
+  // blocked inside the published artifact's sandboxed iframe) ----------
+  function showToast(message) {
+    var stack = document.getElementById('toastStack');
+    var el = document.createElement('div');
+    el.className = 'toast';
+    el.textContent = message;
+    stack.appendChild(el);
+    setTimeout(function () {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, 3200);
+  }
+  function showConfirm(message) {
+    return new Promise(function (resolve) {
+      var overlay = document.createElement('div');
+      overlay.className = 'confirm-overlay';
+      var box = document.createElement('div');
+      box.className = 'confirm-box';
+      var msg = document.createElement('p');
+      msg.className = 'confirm-msg';
+      msg.textContent = message;
+      var actions = document.createElement('div');
+      actions.className = 'confirm-actions';
+      var cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'secondary';
+      cancelBtn.textContent = '取消';
+      var okBtn = document.createElement('button');
+      okBtn.type = 'button';
+      okBtn.textContent = '確定';
+      actions.appendChild(cancelBtn);
+      actions.appendChild(okBtn);
+      box.appendChild(msg);
+      box.appendChild(actions);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+
+      function finish(result) {
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.removeEventListener('keydown', onKey);
+        resolve(result);
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') finish(false);
+        if (e.key === 'Enter') finish(true);
+      }
+      cancelBtn.addEventListener('click', function () { finish(false); });
+      okBtn.addEventListener('click', function () { finish(true); });
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) finish(false); });
+      document.addEventListener('keydown', onKey);
+      okBtn.focus();
+    });
+  }
+
+  const PASSCODE = '1313';
+  function showPasscodeConfirm(message) {
+    return new Promise(function (resolve) {
+      var overlay = document.createElement('div');
+      overlay.className = 'confirm-overlay';
+      var box = document.createElement('div');
+      box.className = 'confirm-box';
+      var msg = document.createElement('p');
+      msg.className = 'confirm-msg';
+      msg.textContent = message;
+      var input = document.createElement('input');
+      input.type = 'password';
+      input.placeholder = '請輸入密語';
+      input.autocomplete = 'off';
+      input.style.marginBottom = '0.5rem';
+      var errorMsg = document.createElement('p');
+      errorMsg.style.color = 'var(--red)';
+      errorMsg.style.fontSize = '0.82rem';
+      errorMsg.style.margin = '0 0 0.9rem';
+      errorMsg.style.display = 'none';
+      errorMsg.textContent = '密語錯誤，請再試一次。';
+      var actions = document.createElement('div');
+      actions.className = 'confirm-actions';
+      var cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'secondary';
+      cancelBtn.textContent = '取消';
+      var okBtn = document.createElement('button');
+      okBtn.type = 'button';
+      okBtn.textContent = '確定';
+      actions.appendChild(cancelBtn);
+      actions.appendChild(okBtn);
+      box.appendChild(msg);
+      box.appendChild(input);
+      box.appendChild(errorMsg);
+      box.appendChild(actions);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+
+      function finish(result) {
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.removeEventListener('keydown', onKey);
+        resolve(result);
+      }
+      function tryConfirm() {
+        if (input.value === PASSCODE) { finish(true); }
+        else { errorMsg.style.display = 'block'; input.value = ''; input.focus(); }
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') finish(false);
+        if (e.key === 'Enter') { e.preventDefault(); tryConfirm(); }
+      }
+      cancelBtn.addEventListener('click', function () { finish(false); });
+      okBtn.addEventListener('click', tryConfirm);
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) finish(false); });
+      document.addEventListener('keydown', onKey);
+      input.focus();
+    });
+  }
+
+  // ---------- state ----------
+  let people = [];   // {id, name, createdAt}
+  let records = [];  // {id, personId, type: 'credit'|'order', date, item, amount, createdAt}
+  let artifactCap = null;   // self-publish capability: makes this page fully public & shared
+  let downloads = null;
+  let isPublicSynced = false;
+
+  let expandedIds = new Set();
+  let editingPersonId = null;
+  let editingRecordId = null;
+  let showAddPerson = false;
+  let deleteMode = false;
+  let selectedForDelete = new Set();
+
+  const LOCAL_KEY = 'meal_ledger_v4';
+  const TYPE_LABEL = { credit: '儲值/還款', order: '訂餐' };
+  const TYPE_CLASS = { credit: 'type-credit', order: 'type-order' };
+  const ADD_TYPES = ['credit', 'order'];
+  const METHOD_LABEL = { cash: '現金', transfer: '轉帳' };
+
+  // ---------- helpers ----------
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function fmtMoney(n) {
+    var v = Math.round((n + Number.EPSILON) * 100) / 100;
+    return 'NT$' + Math.abs(v).toLocaleString('zh-TW');
+  }
+  function todayStr() {
+    var d = new Date();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + m + '-' + day;
+  }
+  function fmtDate(s) {
+    if (!s) return '';
+    var parts = s.split('-');
+    if (parts.length !== 3) return s;
+    return parts[0] + '/' + parts[1] + '/' + parts[2];
+  }
+  function uid() { return 'id' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  function isCredit(type) { return type === 'credit'; }
+  function itemDisplay(r) {
+    if (r.type === 'credit') return METHOD_LABEL[r.item] || r.item || '現金';
+    return r.item && r.item.trim() ? r.item : '（未填寫項目）';
+  }
+  function typeOptionsHtml(selected) {
+    return ADD_TYPES.map(function (t) {
+      return '<option value="' + t + '"' + (t === selected ? ' selected' : '') + '>' + TYPE_LABEL[t] + '</option>';
+    }).join('');
+  }
+  // 儲值/還款：顯示「支付方式」下拉選單（現金／轉帳）；訂餐：顯示自由輸入的品項文字框。
+  // 兩個欄位一開始就都存在於 DOM 裡，只用顯示/隱藏＋disabled 切換是哪一個生效，
+  // 避免用 innerHTML 動態抽換欄位導致偶發抓不到值的問題。
+  function itemFieldsHtml(type, methodValue, textValue) {
+    var v = (methodValue === 'cash' || methodValue === 'transfer') ? methodValue : 'cash';
+    var showMethod = type === 'credit';
+    return '<select name="method" class="item-method"' + (showMethod ? '' : ' disabled style="display:none"') + '>' +
+        '<option value="cash"' + (v === 'cash' ? ' selected' : '') + '>現金</option>' +
+        '<option value="transfer"' + (v === 'transfer' ? ' selected' : '') + '>轉帳</option>' +
+      '</select>' +
+      '<input type="text" name="itemText" class="item-text" placeholder="項目（例如：雞腿便當）" maxlength="40" value="' + escapeHtml(textValue || '') + '"' + (showMethod ? ' disabled style="display:none"' : '') + '>';
+  }
+  // 綁定表單內的類型下拉，切換時同步顯示/隱藏對應的 item 欄位
+  function wireItemFieldToggle(formEl) {
+    var typeSel = formEl.querySelector('select[name="type"]');
+    var methodEl = formEl.querySelector('.item-method');
+    var textEl = formEl.querySelector('.item-text');
+    if (!typeSel || !methodEl || !textEl) return;
+    function sync() {
+      var showMethod = typeSel.value === 'credit';
+      methodEl.style.display = showMethod ? '' : 'none';
+      methodEl.disabled = !showMethod;
+      textEl.style.display = showMethod ? 'none' : '';
+      textEl.disabled = showMethod;
+    }
+    typeSel.addEventListener('change', sync);
+    sync();
+  }
+  function getBalance(personId) {
+    return records.reduce(function (sum, r) {
+      if (r.personId !== personId) return sum;
+      return sum + (isCredit(r.type) ? Number(r.amount) : -Number(r.amount));
+    }, 0);
+  }
+  function recordsFor(personId) {
+    return records.filter(function (r) { return r.personId === personId; })
+      .slice()
+      .sort(function (a, b) {
+        if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+        return (b.createdAt || 0) - (a.createdAt || 0);
+      });
+  }
+
+  // ---------- local storage fallback (used only if the publish capability
+  // truly isn't available in this view, e.g. opened outside claude.ai) ----------
+  function loadLocal() {
+    try {
+      var raw = localStorage.getItem(LOCAL_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        people = parsed.people || [];
+        records = parsed.records || [];
+      }
+    } catch (e) { people = []; records = []; }
+  }
+  function saveLocal() {
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ people: people, records: records })); }
+    catch (e) { /* ignore quota errors */ }
+  }
+
+  // ---------- load the data baked into this published page ----------
+  function loadEmbeddedData() {
+    try {
+      var el = document.getElementById('ledgerData');
+      var parsed = JSON.parse((el && el.textContent) || '{}');
+      people = parsed.people || [];
+      records = parsed.records || [];
+    } catch (e) { people = []; records = []; }
+  }
+
+  // ---------- persistence: re-publish this whole page with the current
+  // data baked in, so every viewer (including brand-new, account-less
+  // visitors opening the link) sees the latest state.
+  //
+  // IMPORTANT: document.documentElement.outerHTML reflects the LIVE page,
+  // which can include things a browser extension injected (ad blockers,
+  // password managers, translators, etc. commonly append <script src="...">
+  // or stray elements into <head>/<body>). If we published that verbatim,
+  // those foreign elements would get baked into the page permanently and
+  // could compound on every future publish. So we snapshot into a detached
+  // clone and strip anything that isn't ours before serializing it. ----------
+  function sanitizedDocumentHtml() {
+    var clone = document.documentElement.cloneNode(true);
+
+    // We never add any <script src="..."> ourselves (both of our scripts are
+    // inline), so any script with a src is foreign — most commonly a browser
+    // extension. Same for <link> tags we didn't author.
+    var allowedLinkHrefs = [
+      'https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap'
+    ];
+    Array.prototype.slice.call(clone.querySelectorAll('script[src]')).forEach(function (el) {
+      el.parentNode.removeChild(el);
+    });
+    Array.prototype.slice.call(clone.querySelectorAll('head link[rel="stylesheet"]')).forEach(function (el) {
+      if (allowedLinkHrefs.indexOf(el.getAttribute('href')) === -1) el.parentNode.removeChild(el);
+    });
+
+    // Only keep the direct head/body children this page actually ships with;
+    // drop any other top-level element an extension may have appended.
+    function keepOnly(container, predicate) {
+      Array.prototype.slice.call(container.children).forEach(function (el) {
+        if (!predicate(el)) el.parentNode.removeChild(el);
+      });
+    }
+    var head = clone.querySelector('head');
+    if (head) {
+      keepOnly(head, function (el) {
+        var tag = el.tagName;
+        return tag === 'META' || tag === 'TITLE' || tag === 'LINK' || tag === 'STYLE';
+      });
+    }
+    var body = clone.querySelector('body');
+    if (body) {
+      keepOnly(body, function (el) {
+        if (el.tagName === 'SCRIPT') return true; // our two inline scripts
+        if (el.tagName === 'HEADER' && el.classList.contains('top')) return true;
+        if (el.tagName === 'DIV' && el.classList.contains('page')) return true;
+        if (el.tagName === 'DIV' && el.classList.contains('toast-stack')) return true;
+        return false;
+      });
+      // never publish a toast or an open confirm dialog as permanent content
+      Array.prototype.slice.call(body.querySelectorAll('.confirm-overlay, .toast')).forEach(function (el) {
+        el.parentNode.removeChild(el);
+      });
+    }
+    return '<!DOCTYPE html>\n' + clone.outerHTML;
+  }
+
+  function buildPublishHtml() {
+    var dataEl = document.getElementById('ledgerData');
+    if (dataEl) {
+      var json = JSON.stringify({ people: people, records: records }).replace(/<\//g, '<\\/');
+      dataEl.textContent = json;
+    }
+    return sanitizedDocumentHtml();
+  }
+
+  async function persist() {
+    if (artifactCap) {
+      try {
+        await artifactCap.publish(buildPublishHtml());
+        isPublicSynced = true;
+      } catch (e) {
+        if (e && (e.code === 'not_writer' || e.code === 'not_granted')) {
+          showToast('這個連結目前是唯讀分享，你的變更沒有被儲存給其他人看到。');
+        } else if (e && e.code === 'conflict') {
+          showToast('剛好有人同時在編輯，畫面已更新為最新版本。');
+        } else {
+          showToast('儲存失敗，請稍後再試一次。');
+        }
+      }
+      updateStorageBadge();
+    } else {
+      saveLocal();
+    }
+  }
+
+  // ---------- data operations (mutate in memory, render, then persist) ----------
+  function addPerson(name) {
+    name = name.trim();
+    if (!name) return;
+    people.push({ id: uid(), name: name, createdAt: Date.now() });
+    renderAll();
+    persist();
+  }
+  function renamePerson(id, name) {
+    name = name.trim();
+    if (!name) return;
+    var p = people.find(function (x) { return x.id === id; });
+    if (p) p.name = name;
+    renderAll();
+    persist();
+  }
+  function deletePersonSync(id) {
+    people = people.filter(function (p) { return p.id !== id; });
+    records = records.filter(function (r) { return r.personId !== id; });
+  }
+  function deletePerson(id) {
+    deletePersonSync(id);
+    renderAll();
+    persist();
+  }
+  function addRecord(personId, type, date, item, amount) {
+    records.push({ id: uid(), personId: personId, type: type, date: date, item: item, amount: Number(amount), createdAt: Date.now() });
+    renderAll();
+    persist();
+  }
+  function updateRecord(id, fields) {
+    var r = records.find(function (x) { return x.id === id; });
+    if (r) Object.assign(r, fields);
+    renderAll();
+    persist();
+  }
+  function deleteRecord(id) {
+    records = records.filter(function (r) { return r.id !== id; });
+    renderAll();
+    persist();
+  }
+
+  async function deleteSelectedPeople() {
+    var ids = Array.from(selectedForDelete);
+    if (ids.length === 0) return;
+    var names = people.filter(function (p) { return ids.indexOf(p.id) !== -1; }).map(function (p) { return p.name; }).join('、');
+    if (!(await showPasscodeConfirm('確定要刪除以下 ' + ids.length + ' 位人員嗎？\n' + names + '\n所有相關紀錄也會一併刪除，且無法復原。'))) return;
+    ids.forEach(function (id) { deletePersonSync(id); });
+    deleteMode = false;
+    selectedForDelete = new Set();
+    renderAll();
+    persist();
+  }
+
+  async function settleMonth() {
+    if (people.length === 0 && records.length === 0) {
+      showToast('目前沒有可歸零的紀錄。');
+      return;
+    }
+    if (records.length > 0 && (await showConfirm('要在歸零前，先匯出這個月的備份嗎？（建議留存紀錄）'))) {
+      await exportBackup();
+    }
+    if (!(await showPasscodeConfirm('確定要「還原歸零」嗎？\n這會清除所有交易紀錄，讓每個人的餘額回到 0，但人員名單會保留。\n此動作無法復原。'))) return;
+    records = [];
+    renderAll();
+    persist();
+  }
+
+  async function resetAll() {
+    if (!(await showPasscodeConfirm('確定要清空所有人員與紀錄嗎？此動作無法復原。'))) return;
+    people = [];
+    records = [];
+    renderAll();
+    persist();
+  }
+
+  async function exportBackup() {
+    if (!downloads) { showToast('這個瀏覽器環境不支援下載檔案，請改用網頁版 claude.ai 開啟。'); return; }
+    var payload = { exportedAt: new Date().toISOString(), people: people, records: records };
+    var json = JSON.stringify(payload, null, 2);
+    var filename = '記帳本備份-' + todayStr() + '.json';
+    try {
+      await downloads.save({ filename: filename, data: json });
+    } catch (e) {
+      if (e && e.code === 'declined') return; // viewer chose not to save; not an error
+      showToast('匯出失敗，請稍後再試一次。');
+    }
+  }
+
+  async function importBackup(file) {
+    var text;
+    try { text = await file.text(); }
+    catch (e) { showToast('讀取檔案失敗。'); return; }
+    var parsed;
+    try { parsed = JSON.parse(text); }
+    catch (e) { showToast('這不是有效的備份檔（JSON 格式錯誤）。'); return; }
+    if (!parsed || !Array.isArray(parsed.people) || !Array.isArray(parsed.records)) {
+      showToast('這不是有效的備份檔。'); return;
+    }
+    if (!(await showPasscodeConfirm('匯入備份會覆蓋目前所有人員與紀錄，確定要繼續嗎？'))) return;
+    people = parsed.people;
+    records = parsed.records;
+    renderAll();
+    persist();
+  }
+
+  // ---------- rendering ----------
+  function renderAll() {
+    renderHero();
+    renderAddPersonRow();
+    renderDeleteBar();
+    renderPeople();
+    renderEntry();
+  }
+
+  function renderHero() {
+    var totalOwed = 0, owingCount = 0;
+    people.forEach(function (p) {
+      var bal = getBalance(p.id);
+      if (bal < -0.001) { totalOwed += -bal; owingCount++; }
+    });
+    var heroEl = document.getElementById('heroTotal');
+    heroEl.textContent = fmtMoney(totalOwed);
+    heroEl.className = 'hero-num num ' + (totalOwed > 0.001 ? 'owe' : 'clear');
+    var sub = document.getElementById('heroSub');
+    if (people.length === 0) sub.textContent = '尚未新增任何人員';
+    else if (owingCount === 0) sub.textContent = '所有人都已結清 🎉';
+    else sub.textContent = owingCount + ' 人尚未結清（共 ' + people.length + ' 人）';
+  }
+
+  function renderAddPersonRow() {
+    var wrap = document.getElementById('addPersonRow');
+    var btn = document.getElementById('addPersonToggle');
+    btn.textContent = showAddPerson ? '×' : '＋';
+    btn.title = showAddPerson ? '取消新增' : '新增人員';
+    if (!showAddPerson) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+    wrap.style.display = 'block';
+    wrap.innerHTML = '<form class="add-person-row" id="addPersonForm">' +
+      '<input type="text" id="newPersonName" placeholder="輸入姓名" maxlength="20" required style="width:auto; flex:1">' +
+      '<button type="submit">新增</button>' +
+      '</form>';
+    document.getElementById('addPersonForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var input = document.getElementById('newPersonName');
+      addPerson(input.value);
+      showAddPerson = false;
+      renderAddPersonRow();
+    });
+    document.getElementById('newPersonName').focus();
+  }
+
+  function renderDeleteBar() {
+    var btn = document.getElementById('deleteModeToggle');
+    var bar = document.getElementById('deleteBar');
+    btn.title = deleteMode ? '取消刪除' : '刪除人員';
+    btn.style.background = deleteMode ? 'var(--red-bg)' : 'transparent';
+    btn.style.borderColor = deleteMode ? 'var(--red)' : 'var(--border)';
+    btn.style.color = deleteMode ? 'var(--red)' : 'var(--ink-strong)';
+    if (!deleteMode) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+    bar.style.display = 'flex';
+    bar.className = 'delete-bar';
+    var n = selectedForDelete.size;
+    bar.innerHTML = '<span class="count">已勾選 ' + n + ' 人</span>' +
+      '<span class="actions">' +
+        '<button type="button" class="secondary small" id="cancelDeleteBtn">取消</button>' +
+        '<button type="button" class="small" id="confirmDeleteBtn"' + (n === 0 ? ' disabled' : '') + ' style="background:var(--red)">刪除選取的人員</button>' +
+      '</span>';
+    document.getElementById('cancelDeleteBtn').addEventListener('click', function () {
+      deleteMode = false; selectedForDelete = new Set();
+      renderDeleteBar(); renderPeople();
+    });
+    document.getElementById('confirmDeleteBtn').addEventListener('click', deleteSelectedPeople);
+  }
+
+  function historyRowHtml(r) {
+    if (editingRecordId === r.id) {
+      return '<tr class="edit-record-row"><td colspan="5">' +
+        '<form class="edit-grid" data-save-record="' + r.id + '">' +
+          '<select name="type">' + typeOptionsHtml(r.type) + '</select>' +
+          '<span class="item-field-wrap">' + itemFieldsHtml(r.type, r.type === 'credit' ? r.item : '', r.type === 'order' ? r.item : '') + '</span>' +
+          '<input type="number" name="amount" value="' + r.amount + '" min="0.01" step="0.01" required>' +
+          '<input type="date" name="date" value="' + escapeHtml(r.date) + '" required>' +
+          '<button type="submit" class="small">儲存</button>' +
+          '<button type="button" class="secondary small" data-cancel-record>取消</button>' +
+        '</form>' +
+      '</td></tr>';
+    }
+    var credit = isCredit(r.type);
+    return '<tr>' +
+      '<td class="num">' + fmtDate(r.date) + '</td>' +
+      '<td><span class="type-tag ' + TYPE_CLASS[r.type] + '">' + TYPE_LABEL[r.type] + '</span></td>' +
+      '<td>' + escapeHtml(itemDisplay(r)) + '</td>' +
+      '<td class="amt ' + (credit ? 'pos' : 'neg') + '">' + (credit ? '+' : '−') + fmtMoney(r.amount) + '</td>' +
+      '<td><div class="row-actions">' +
+        '<button type="button" class="ghost" data-edit-record="' + r.id + '">編輯</button>' +
+        '<button type="button" class="ghost" data-del-record="' + r.id + '">刪除</button>' +
+      '</div></td>' +
+      '</tr>';
+  }
+
+  function personCardHtml(p, isTopDebtor) {
+    var bal = getBalance(p.id);
+    var isOpen = expandedIds.has(p.id);
+    var recs = recordsFor(p.id);
+    var balColor = bal < -0.001 ? 'var(--red)' : (bal > 0.001 ? 'var(--green)' : 'var(--ink-soft)');
+
+    var body = '<div class="person-body">';
+    if (editingPersonId === p.id) {
+      body += '<form class="inline-form" data-save-person="' + p.id + '" style="margin:0.2rem 0 0.8rem">' +
+        '<input type="text" name="name" value="' + escapeHtml(p.name) + '" maxlength="20" required style="max-width:12rem">' +
+        '<button type="submit" class="small">儲存</button>' +
+        '<button type="button" class="secondary small" data-cancel-person>取消</button>' +
+        '</form>';
+    } else {
+      body += '<div class="person-toolbar">' +
+        '<button type="button" class="ghost" data-edit-person="' + p.id + '">編輯姓名</button>' +
+        '<button type="button" class="ghost" data-del-person="' + p.id + '">刪除人員</button>' +
+        '</div>';
+    }
+    if (recs.length === 0) {
+      body += '<div class="empty-state">尚無紀錄，到下方「新增紀錄」開始第一筆吧。</div>';
+    } else {
+      body += '<table class="history"><thead><tr><th>日期</th><th>類型</th><th>項目</th><th style="text-align:right">金額</th><th></th></tr></thead><tbody>';
+      recs.forEach(function (r) { body += historyRowHtml(r); });
+      body += '</tbody></table>';
+    }
+    body += '</div>';
+
+    return '<details class="person" id="person-' + p.id + '"' + (isOpen ? ' open' : '') + '>' +
+      '<summary>' +
+      (deleteMode ? '<input type="checkbox" class="p-check" data-select-person="' + p.id + '"' + (selectedForDelete.has(p.id) ? ' checked' : '') + '>' : '') +
+      '<span class="p-name-row"><span class="p-caret">▸</span><span class="p-name">' + escapeHtml(p.name) + (isTopDebtor ? ' 👑' : '') + '</span></span>' +
+      '<span class="p-balance num" style="color:' + balColor + '">' +
+        (bal < 0 ? '−' : bal > 0 ? '+' : '') + fmtMoney(bal) + '</span></summary>' +
+      body +
+      '</details>';
+  }
+
+  function renderPeople() {
+    var wrap = document.getElementById('peopleWrap');
+    var hint = document.getElementById('overviewHint');
+    if (people.length === 0) {
+      wrap.innerHTML = '<div class="empty-state">還沒有人員，點右上角的「＋」新增第一位吧。</div>';
+      hint.textContent = '';
+      return;
+    }
+    hint.textContent = deleteMode ? '勾選要刪除的人員' : '點姓名可展開紀錄';
+    var sorted = people.map(function (p) { return { p: p, bal: getBalance(p.id) }; })
+      .sort(function (a, b) { return a.bal - b.bal; })
+      .map(function (row) { return row.p; });
+    wrap.innerHTML = sorted.map(function (p, idx) {
+      var isTop = idx === 0 && getBalance(p.id) < -0.001;
+      return personCardHtml(p, isTop);
+    }).join('');
+
+    wrap.querySelectorAll('details.person').forEach(function (det) {
+      det.addEventListener('toggle', function () {
+        var id = det.id.replace('person-', '');
+        if (det.open) expandedIds.add(id); else expandedIds.delete(id);
+      });
+    });
+    wrap.querySelectorAll('[data-select-person]').forEach(function (cb) {
+      cb.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var id = cb.getAttribute('data-select-person');
+        if (selectedForDelete.has(id)) selectedForDelete.delete(id); else selectedForDelete.add(id);
+        renderDeleteBar();
+        renderPeople();
+      });
+    });
+    wrap.querySelectorAll('[data-edit-person]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        editingPersonId = btn.getAttribute('data-edit-person');
+        renderPeople();
+      });
+    });
+    wrap.querySelectorAll('[data-cancel-person]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        editingPersonId = null;
+        renderPeople();
+      });
+    });
+    wrap.querySelectorAll('[data-save-person]').forEach(function (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        var id = form.getAttribute('data-save-person');
+        var name = form.elements['name'].value;
+        editingPersonId = null;
+        renamePerson(id, name);
+      });
+    });
+    wrap.querySelectorAll('[data-del-person]').forEach(function (btn) {
+      btn.addEventListener('click', async function (e) {
+        e.stopPropagation();
+        var id = btn.getAttribute('data-del-person');
+        var p = people.find(function (x) { return x.id === id; });
+        if (await showPasscodeConfirm('確定要刪除「' + (p ? p.name : '') + '」嗎？這個人的所有紀錄也會一併刪除，且無法復原。')) deletePerson(id);
+      });
+    });
+    wrap.querySelectorAll('[data-edit-record]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        editingRecordId = btn.getAttribute('data-edit-record');
+        renderPeople();
+      });
+    });
+    wrap.querySelectorAll('[data-cancel-record]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        editingRecordId = null;
+        renderPeople();
+      });
+    });
+    wrap.querySelectorAll('[data-save-record]').forEach(function (form) {
+      form.addEventListener('click', function (e) { e.stopPropagation(); });
+      wireItemFieldToggle(form);
+      form.addEventListener('submit', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        var id = form.getAttribute('data-save-record');
+        var savedType = form.elements['type'].value;
+        var item = savedType === 'credit' ? form.elements['method'].value : form.elements['itemText'].value;
+        var fields = {
+          type: savedType,
+          item: item,
+          amount: Number(form.elements['amount'].value),
+          date: form.elements['date'].value
+        };
+        if (!fields.amount || fields.amount <= 0) return;
+        editingRecordId = null;
+        updateRecord(id, fields);
+      });
+    });
+    wrap.querySelectorAll('[data-del-record]').forEach(function (btn) {
+      btn.addEventListener('click', async function (e) {
+        e.stopPropagation();
+        var id = btn.getAttribute('data-del-record');
+        if (await showPasscodeConfirm('確定要刪除這筆紀錄嗎？')) deleteRecord(id);
+      });
+    });
+  }
+
+  function renderEntry() {
+    var wrap = document.getElementById('entryWrap');
+    if (people.length === 0) {
+      wrap.innerHTML = '<div class="entry-empty">請先新增人員，才能開始記錄儲值/還款或訂餐。</div>';
+      return;
+    }
+    var sorted = people.slice().sort(function (a, b) { return (a.createdAt || 0) - (b.createdAt || 0); });
+    var options = '<option value="">選擇姓名</option>' + sorted.map(function (p) {
+      return '<option value="' + p.id + '">' + escapeHtml(p.name) + '</option>';
+    }).join('');
+    wrap.innerHTML = '<form class="entry-form" id="quickEntryForm">' +
+      '<select name="personId" required>' + options + '</select>' +
+      '<select name="type">' + typeOptionsHtml('credit') + '</select>' +
+      '<span class="item-field-wrap">' + itemFieldsHtml('credit', '', '') + '</span>' +
+      '<input type="number" name="amount" placeholder="金額" min="0.01" step="0.01" required>' +
+      '<input type="date" name="date" value="' + todayStr() + '" required>' +
+      '<button type="submit">新增紀錄</button>' +
+      '</form>';
+    var form = document.getElementById('quickEntryForm');
+    wireItemFieldToggle(form);
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var f = e.target;
+      var personId = f.elements['personId'].value;
+      var type = f.elements['type'].value;
+      var item = type === 'credit' ? f.elements['method'].value : f.elements['itemText'].value;
+      var amount = f.elements['amount'].value;
+      var date = f.elements['date'].value;
+      if (!personId || !amount || Number(amount) <= 0) return;
+      if (type === 'order' && !item.trim()) { showToast('請填寫訂餐的項目。'); return; }
+      addRecord(personId, type, date, item, amount);
+      f.elements['amount'].value = '';
+      f.elements['itemText'].value = '';
+      expandedIds.add(personId);
+    });
+  }
+
+  // ---------- storage init ----------
+  function updateStorageBadge() {
+    var badge = document.getElementById('storageBadge');
+    var note = document.getElementById('footerNote');
+    if (artifactCap) {
+      badge.textContent = isPublicSynced ? '公開同步' : '公開連結';
+      badge.classList.remove('local');
+      badge.classList.add('public');
+      note.textContent = '任何拿到這個連結的人都能看到最新資料，也都能新增/編輯——不需要 Claude 帳號。';
+    } else {
+      badge.textContent = '僅本機儲存';
+      badge.classList.remove('public');
+      badge.classList.add('local');
+      note.textContent = '⚠ 這個瀏覽器環境不支援公開同步，資料僅儲存在這個瀏覽器裡。';
+    }
+  }
+
+  async function initStorage() {
+    loadEmbeddedData(); // always start from what's baked into this page
+    try {
+      if (window.claude && typeof window.claude.use === 'function') {
+        artifactCap = await window.claude.use('artifact');
+        downloads = await window.claude.use('downloads');
+      }
+    } catch (e) { artifactCap = null; downloads = null; }
+    if (!artifactCap && people.length === 0 && records.length === 0) {
+      // no publish capability in this view (e.g. opened outside claude.ai) — fall back
+      // to this one browser's local copy so the tool still works standalone
+      loadLocal();
+    }
+    renderAll();
+    updateStorageBadge();
+  }
+
+  document.getElementById('addPersonToggle').addEventListener('click', function () {
+    showAddPerson = !showAddPerson;
+    if (showAddPerson) { deleteMode = false; selectedForDelete = new Set(); renderDeleteBar(); renderPeople(); }
+    renderAddPersonRow();
+  });
+  document.getElementById('deleteModeToggle').addEventListener('click', function () {
+    deleteMode = !deleteMode;
+    if (deleteMode) { showAddPerson = false; renderAddPersonRow(); }
+    else { selectedForDelete = new Set(); }
+    renderDeleteBar();
+    renderPeople();
+  });
+  document.getElementById('resetBtn').addEventListener('click', resetAll);
+  document.getElementById('settleBtn').addEventListener('click', settleMonth);
+  document.getElementById('exportBtn').addEventListener('click', exportBackup);
+  document.getElementById('importBtn').addEventListener('click', function () {
+    document.getElementById('importFile').click();
+  });
+  document.getElementById('importFile').addEventListener('change', function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (file) importBackup(file);
+    e.target.value = '';
+  });
+
+  renderAll();
+  initStorage();
+})();
+</script>
+</body>
+</html>
