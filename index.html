@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <style>
   :root {
     --bg: #FFFFFF;
@@ -282,16 +284,27 @@
 
 <div class="toast-stack" id="toastStack"></div>
 
-<!-- 這個網頁會把目前的資料存進自己身上並重新發布，讓任何拿到連結的人（不需要 Claude 帳號）
-     打開時都看到最新狀態；不要手動編輯這個標籤內容。 -->
-<script type="application/json" id="ledgerData">{"people":[{"id":"idmub7ypjsymuqwk","name":"joy","createdAt":1789993584856},{"id":"idmub8c9oj6hujp2","name":"Ray","createdAt":1789994217475},{"id":"idmub8cezsyopamb","name":"+1","createdAt":1789994224360},{"id":"idmub8cl50rl5mxo","name":"Shan","createdAt":1789994232324},{"id":"idmub8epl4x64ape","name":"季剛","createdAt":1789994331400},{"id":"idmub8ewllxk78wm","name":"楚喬","createdAt":1789994340489}],"records":[{"id":"idmub7z9eej2d0rq","personId":"idmub7ypjsymuqwk","type":"order","date":"2026-09-21","item":"累積","amount":721,"createdAt":1789993610582},{"id":"idmub8d49rfymlrl","personId":"idmub8cezsyopamb","type":"order","date":"2026-09-21","item":"累積","amount":131,"createdAt":1789994257119},{"id":"idmub8donhungwgr","personId":"idmub8cl50rl5mxo","type":"order","date":"2026-09-21","item":"累積","amount":162,"createdAt":1789994283533}]}</script>
+<!-- 這是第一次上線時的種子資料（給還沒有連上 Firebase 資料庫的情況備用）。
+     一旦 Firebase 資料庫裡已經有資料，就不會再用到這裡的內容。 -->
+<script type="application/json" id="ledgerSeedData">{"people":[{"id":"idmub7ypjsymuqwk","name":"joy","createdAt":1789993584856},{"id":"idmub8c9oj6hujp2","name":"Ray","createdAt":1789994217475},{"id":"idmub8cezsyopamb","name":"+1","createdAt":1789994224360},{"id":"idmub8cl50rl5mxo","name":"Shan","createdAt":1789994232324},{"id":"idmub8epl4x64ape","name":"季剛","createdAt":1789994331400},{"id":"idmub8ewllxk78wm","name":"楚喬","createdAt":1789994340489}],"records":[{"id":"idmub7z9eej2d0rq","personId":"idmub7ypjsymuqwk","type":"order","date":"2026-09-21","item":"累積","amount":721,"createdAt":1789993610582},{"id":"idmub8d49rfymlrl","personId":"idmub8cezsyopamb","type":"order","date":"2026-09-21","item":"累積","amount":131,"createdAt":1789994257119},{"id":"idmub8donhungwgr","personId":"idmub8cl50rl5mxo","type":"order","date":"2026-09-21","item":"累積","amount":162,"createdAt":1789994283533}]}</script>
 
 <script>
 (function () {
   "use strict";
 
-  // ---------- custom confirm/toast (native confirm()/alert() are
-  // blocked inside the published artifact's sandboxed iframe) ----------
+  // ---------- Firebase ----------
+  var firebaseConfig = {
+    apiKey: "AIzaSyDcSZjne0sKm-3L3fvIfCviqLPSsXJgHlQ",
+    authDomain: "meal-ledger-c28a2.firebaseapp.com",
+    projectId: "meal-ledger-c28a2",
+    storageBucket: "meal-ledger-c28a2.firebasestorage.app",
+    messagingSenderId: "302074833464",
+    appId: "1:302074833464:web:4ead59f93056f1b90254cd"
+  };
+  var db = null;
+  var usingFirestore = false;
+
+  // ---------- custom confirm/toast ----------
   function showToast(message) {
     var stack = document.getElementById('toastStack');
     var el = document.createElement('div');
@@ -326,7 +339,6 @@
       box.appendChild(actions);
       overlay.appendChild(box);
       document.body.appendChild(overlay);
-
       function finish(result) {
         if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
         document.removeEventListener('keydown', onKey);
@@ -343,8 +355,7 @@
       okBtn.focus();
     });
   }
-
-  const PASSCODE = '1313';
+  var PASSCODE = '1313';
   function showPasscodeConfirm(message) {
     return new Promise(function (resolve) {
       var overlay = document.createElement('div');
@@ -382,7 +393,6 @@
       box.appendChild(actions);
       overlay.appendChild(box);
       document.body.appendChild(overlay);
-
       function finish(result) {
         if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
         document.removeEventListener('keydown', onKey);
@@ -405,24 +415,20 @@
   }
 
   // ---------- state ----------
-  let people = [];   // {id, name, createdAt}
-  let records = [];  // {id, personId, type: 'credit'|'order', date, item, amount, createdAt}
-  let artifactCap = null;   // self-publish capability: makes this page fully public & shared
-  let downloads = null;
-  let isPublicSynced = false;
+  var people = [];
+  var records = [];
+  var expandedIds = new Set();
+  var editingPersonId = null;
+  var editingRecordId = null;
+  var showAddPerson = false;
+  var deleteMode = false;
+  var selectedForDelete = new Set();
 
-  let expandedIds = new Set();
-  let editingPersonId = null;
-  let editingRecordId = null;
-  let showAddPerson = false;
-  let deleteMode = false;
-  let selectedForDelete = new Set();
-
-  const LOCAL_KEY = 'meal_ledger_v4';
-  const TYPE_LABEL = { credit: '儲值/還款', order: '訂餐' };
-  const TYPE_CLASS = { credit: 'type-credit', order: 'type-order' };
-  const ADD_TYPES = ['credit', 'order'];
-  const METHOD_LABEL = { cash: '現金', transfer: '轉帳' };
+  var LOCAL_KEY = 'meal_ledger_standalone_v1';
+  var TYPE_LABEL = { credit: '儲值/還款', order: '訂餐' };
+  var TYPE_CLASS = { credit: 'type-credit', order: 'type-order' };
+  var ADD_TYPES = ['credit', 'order'];
+  var METHOD_LABEL = { cash: '現金', transfer: '轉帳' };
 
   // ---------- helpers ----------
   function escapeHtml(s) {
@@ -457,9 +463,6 @@
       return '<option value="' + t + '"' + (t === selected ? ' selected' : '') + '>' + TYPE_LABEL[t] + '</option>';
     }).join('');
   }
-  // 儲值/還款：顯示「支付方式」下拉選單（現金／轉帳）；訂餐：顯示自由輸入的品項文字框。
-  // 兩個欄位一開始就都存在於 DOM 裡，只用顯示/隱藏＋disabled 切換是哪一個生效，
-  // 避免用 innerHTML 動態抽換欄位導致偶發抓不到值的問題。
   function itemFieldsHtml(type, methodValue, textValue) {
     var v = (methodValue === 'cash' || methodValue === 'transfer') ? methodValue : 'cash';
     var showMethod = type === 'credit';
@@ -469,7 +472,6 @@
       '</select>' +
       '<input type="text" name="itemText" class="item-text" placeholder="項目（例如：雞腿便當）" maxlength="40" value="' + escapeHtml(textValue || '') + '"' + (showMethod ? ' disabled style="display:none"' : '') + '>';
   }
-  // 綁定表單內的類型下拉，切換時同步顯示/隱藏對應的 item 欄位
   function wireItemFieldToggle(formEl) {
     var typeSel = formEl.querySelector('select[name="type"]');
     var methodEl = formEl.querySelector('.item-method');
@@ -500,8 +502,7 @@
       });
   }
 
-  // ---------- local storage fallback (used only if the publish capability
-  // truly isn't available in this view, e.g. opened outside claude.ai) ----------
+  // ---------- local-storage fallback (only used if Firestore truly can't connect) ----------
   function loadLocal() {
     try {
       var raw = localStorage.getItem(LOCAL_KEY);
@@ -509,6 +510,10 @@
         var parsed = JSON.parse(raw);
         people = parsed.people || [];
         records = parsed.records || [];
+      } else {
+        var seed = JSON.parse(document.getElementById('ledgerSeedData').textContent);
+        people = seed.people || [];
+        records = seed.records || [];
       }
     } catch (e) { people = []; records = []; }
   }
@@ -517,192 +522,169 @@
     catch (e) { /* ignore quota errors */ }
   }
 
-  // ---------- load the data baked into this published page ----------
-  function loadEmbeddedData() {
-    try {
-      var el = document.getElementById('ledgerData');
-      var parsed = JSON.parse((el && el.textContent) || '{}');
-      people = parsed.people || [];
-      records = parsed.records || [];
-    } catch (e) { people = []; records = []; }
-  }
-
-  // ---------- persistence: re-publish this whole page with the current
-  // data baked in, so every viewer (including brand-new, account-less
-  // visitors opening the link) sees the latest state.
-  //
-  // IMPORTANT: document.documentElement.outerHTML reflects the LIVE page,
-  // which can include things a browser extension injected (ad blockers,
-  // password managers, translators, etc. commonly append <script src="...">
-  // or stray elements into <head>/<body>). If we published that verbatim,
-  // those foreign elements would get baked into the page permanently and
-  // could compound on every future publish. So we snapshot into a detached
-  // clone and strip anything that isn't ours before serializing it. ----------
-  function sanitizedDocumentHtml() {
-    var clone = document.documentElement.cloneNode(true);
-
-    // We never add any <script src="..."> ourselves (both of our scripts are
-    // inline), so any script with a src is foreign — most commonly a browser
-    // extension. Same for <link> tags we didn't author.
-    var allowedLinkHrefs = [
-      'https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap'
-    ];
-    Array.prototype.slice.call(clone.querySelectorAll('script[src]')).forEach(function (el) {
-      el.parentNode.removeChild(el);
+  // ---------- Firestore CRUD (single source of truth once connected;
+  // onSnapshot below keeps `people`/`records` and the UI in sync for
+  // every visitor automatically) ----------
+  async function seedFirestoreIfEmpty() {
+    var snap = await db.collection('people').limit(1).get();
+    if (!snap.empty) return;
+    var seed;
+    try { seed = JSON.parse(document.getElementById('ledgerSeedData').textContent); }
+    catch (e) { return; }
+    if (!seed.people || !seed.people.length) return;
+    var batch = db.batch();
+    seed.people.forEach(function (p) {
+      batch.set(db.collection('people').doc(p.id), { name: p.name, createdAt: p.createdAt || Date.now() });
     });
-    Array.prototype.slice.call(clone.querySelectorAll('head link[rel="stylesheet"]')).forEach(function (el) {
-      if (allowedLinkHrefs.indexOf(el.getAttribute('href')) === -1) el.parentNode.removeChild(el);
+    (seed.records || []).forEach(function (r) {
+      batch.set(db.collection('records').doc(r.id), {
+        personId: r.personId, type: r.type, date: r.date, item: r.item,
+        amount: Number(r.amount), createdAt: r.createdAt || Date.now()
+      });
     });
-
-    // Only keep the direct head/body children this page actually ships with;
-    // drop any other top-level element an extension may have appended.
-    function keepOnly(container, predicate) {
-      Array.prototype.slice.call(container.children).forEach(function (el) {
-        if (!predicate(el)) el.parentNode.removeChild(el);
-      });
-    }
-    var head = clone.querySelector('head');
-    if (head) {
-      keepOnly(head, function (el) {
-        var tag = el.tagName;
-        return tag === 'META' || tag === 'TITLE' || tag === 'LINK' || tag === 'STYLE';
-      });
-    }
-    var body = clone.querySelector('body');
-    if (body) {
-      keepOnly(body, function (el) {
-        if (el.tagName === 'SCRIPT') return true; // our two inline scripts
-        if (el.tagName === 'HEADER' && el.classList.contains('top')) return true;
-        if (el.tagName === 'DIV' && el.classList.contains('page')) return true;
-        if (el.tagName === 'DIV' && el.classList.contains('toast-stack')) return true;
-        return false;
-      });
-      // never publish a toast or an open confirm dialog as permanent content
-      Array.prototype.slice.call(body.querySelectorAll('.confirm-overlay, .toast')).forEach(function (el) {
-        el.parentNode.removeChild(el);
-      });
-    }
-    return '<!DOCTYPE html>\n' + clone.outerHTML;
+    await batch.commit();
   }
 
-  function buildPublishHtml() {
-    var dataEl = document.getElementById('ledgerData');
-    if (dataEl) {
-      var json = JSON.stringify({ people: people, records: records }).replace(/<\//g, '<\\/');
-      dataEl.textContent = json;
-    }
-    return sanitizedDocumentHtml();
-  }
-
-  async function persist() {
-    if (artifactCap) {
-      try {
-        await artifactCap.publish(buildPublishHtml());
-        isPublicSynced = true;
-      } catch (e) {
-        if (e && (e.code === 'not_writer' || e.code === 'not_granted')) {
-          showToast('這個連結目前是唯讀分享，你的變更沒有被儲存給其他人看到。');
-        } else if (e && e.code === 'conflict') {
-          showToast('剛好有人同時在編輯，畫面已更新為最新版本。');
-        } else {
-          showToast('儲存失敗，請稍後再試一次。');
-        }
-      }
-      updateStorageBadge();
-    } else {
-      saveLocal();
-    }
-  }
-
-  // ---------- data operations (mutate in memory, render, then persist) ----------
   function addPerson(name) {
     name = name.trim();
     if (!name) return;
-    people.push({ id: uid(), name: name, createdAt: Date.now() });
-    renderAll();
-    persist();
+    if (usingFirestore) {
+      db.collection('people').add({ name: name, createdAt: Date.now() })
+        .catch(function () { showToast('新增人員失敗，請稍後再試一次。'); });
+    } else {
+      people.push({ id: uid(), name: name, createdAt: Date.now() });
+      saveLocal(); renderAll();
+    }
   }
   function renamePerson(id, name) {
     name = name.trim();
     if (!name) return;
-    var p = people.find(function (x) { return x.id === id; });
-    if (p) p.name = name;
-    renderAll();
-    persist();
+    if (usingFirestore) {
+      db.collection('people').doc(id).update({ name: name })
+        .catch(function () { showToast('更新姓名失敗，請稍後再試一次。'); });
+    } else {
+      var p = people.find(function (x) { return x.id === id; });
+      if (p) p.name = name;
+      saveLocal(); renderAll();
+    }
   }
-  function deletePersonSync(id) {
-    people = people.filter(function (p) { return p.id !== id; });
-    records = records.filter(function (r) { return r.personId !== id; });
-  }
-  function deletePerson(id) {
-    deletePersonSync(id);
-    renderAll();
-    persist();
+  async function deletePerson(id) {
+    if (usingFirestore) {
+      try {
+        var snap = await db.collection('records').where('personId', '==', id).get();
+        var batch = db.batch();
+        snap.docs.forEach(function (d) { batch.delete(d.ref); });
+        batch.delete(db.collection('people').doc(id));
+        await batch.commit();
+      } catch (e) { showToast('刪除失敗，請稍後再試一次。'); }
+    } else {
+      people = people.filter(function (p) { return p.id !== id; });
+      records = records.filter(function (r) { return r.personId !== id; });
+      saveLocal(); renderAll();
+    }
   }
   function addRecord(personId, type, date, item, amount) {
-    records.push({ id: uid(), personId: personId, type: type, date: date, item: item, amount: Number(amount), createdAt: Date.now() });
-    renderAll();
-    persist();
+    var body = { personId: personId, type: type, date: date, item: item, amount: Number(amount), createdAt: Date.now() };
+    if (usingFirestore) {
+      db.collection('records').add(body).catch(function () { showToast('新增紀錄失敗，請稍後再試一次。'); });
+    } else {
+      body.id = uid();
+      records.push(body);
+      saveLocal(); renderAll();
+    }
   }
   function updateRecord(id, fields) {
-    var r = records.find(function (x) { return x.id === id; });
-    if (r) Object.assign(r, fields);
-    renderAll();
-    persist();
+    if (usingFirestore) {
+      db.collection('records').doc(id).update(fields).catch(function () { showToast('更新紀錄失敗，請稍後再試一次。'); });
+    } else {
+      var r = records.find(function (x) { return x.id === id; });
+      if (r) Object.assign(r, fields);
+      saveLocal(); renderAll();
+    }
   }
   function deleteRecord(id) {
-    records = records.filter(function (r) { return r.id !== id; });
-    renderAll();
-    persist();
+    if (usingFirestore) {
+      db.collection('records').doc(id).delete().catch(function () { showToast('刪除失敗，請稍後再試一次。'); });
+    } else {
+      records = records.filter(function (r) { return r.id !== id; });
+      saveLocal(); renderAll();
+    }
   }
-
   async function deleteSelectedPeople() {
     var ids = Array.from(selectedForDelete);
     if (ids.length === 0) return;
     var names = people.filter(function (p) { return ids.indexOf(p.id) !== -1; }).map(function (p) { return p.name; }).join('、');
     if (!(await showPasscodeConfirm('確定要刪除以下 ' + ids.length + ' 位人員嗎？\n' + names + '\n所有相關紀錄也會一併刪除，且無法復原。'))) return;
-    ids.forEach(function (id) { deletePersonSync(id); });
+    if (usingFirestore) {
+      try {
+        var batch = db.batch();
+        for (var i = 0; i < ids.length; i++) {
+          var snap = await db.collection('records').where('personId', '==', ids[i]).get();
+          snap.docs.forEach(function (d) { batch.delete(d.ref); });
+          batch.delete(db.collection('people').doc(ids[i]));
+        }
+        await batch.commit();
+      } catch (e) { showToast('刪除失敗，請稍後再試一次。'); }
+    } else {
+      ids.forEach(function (id) {
+        people = people.filter(function (p) { return p.id !== id; });
+        records = records.filter(function (r) { return r.personId !== id; });
+      });
+      saveLocal();
+    }
     deleteMode = false;
     selectedForDelete = new Set();
     renderAll();
-    persist();
   }
-
   async function settleMonth() {
     if (people.length === 0 && records.length === 0) {
       showToast('目前沒有可歸零的紀錄。');
       return;
     }
     if (records.length > 0 && (await showConfirm('要在歸零前，先匯出這個月的備份嗎？（建議留存紀錄）'))) {
-      await exportBackup();
+      exportBackup();
     }
     if (!(await showPasscodeConfirm('確定要「還原歸零」嗎？\n這會清除所有交易紀錄，讓每個人的餘額回到 0，但人員名單會保留。\n此動作無法復原。'))) return;
-    records = [];
-    renderAll();
-    persist();
-  }
-
-  async function resetAll() {
-    if (!(await showPasscodeConfirm('確定要清空所有人員與紀錄嗎？此動作無法復原。'))) return;
-    people = [];
-    records = [];
-    renderAll();
-    persist();
-  }
-
-  async function exportBackup() {
-    if (!downloads) { showToast('這個瀏覽器環境不支援下載檔案，請改用網頁版 claude.ai 開啟。'); return; }
-    var payload = { exportedAt: new Date().toISOString(), people: people, records: records };
-    var json = JSON.stringify(payload, null, 2);
-    var filename = '記帳本備份-' + todayStr() + '.json';
-    try {
-      await downloads.save({ filename: filename, data: json });
-    } catch (e) {
-      if (e && e.code === 'declined') return; // viewer chose not to save; not an error
-      showToast('匯出失敗，請稍後再試一次。');
+    if (usingFirestore) {
+      try {
+        var snap = await db.collection('records').get();
+        var batch = db.batch();
+        snap.docs.forEach(function (d) { batch.delete(d.ref); });
+        await batch.commit();
+      } catch (e) { showToast('歸零失敗，請稍後再試一次。'); }
+    } else {
+      records = [];
+      saveLocal(); renderAll();
     }
   }
-
+  async function resetAll() {
+    if (!(await showPasscodeConfirm('確定要清空所有人員與紀錄嗎？此動作無法復原。'))) return;
+    if (usingFirestore) {
+      try {
+        var ps = await db.collection('people').get();
+        var rs = await db.collection('records').get();
+        var batch = db.batch();
+        ps.docs.forEach(function (d) { batch.delete(d.ref); });
+        rs.docs.forEach(function (d) { batch.delete(d.ref); });
+        await batch.commit();
+      } catch (e) { showToast('清空失敗，請稍後再試一次。'); }
+    } else {
+      people = []; records = [];
+      saveLocal(); renderAll();
+    }
+  }
+  function exportBackup() {
+    var payload = { exportedAt: new Date().toISOString(), people: people, records: records };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = '記帳本備份-' + todayStr() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+  }
   async function importBackup(file) {
     var text;
     try { text = await file.text(); }
@@ -714,10 +696,29 @@
       showToast('這不是有效的備份檔。'); return;
     }
     if (!(await showPasscodeConfirm('匯入備份會覆蓋目前所有人員與紀錄，確定要繼續嗎？'))) return;
-    people = parsed.people;
-    records = parsed.records;
-    renderAll();
-    persist();
+    if (usingFirestore) {
+      try {
+        var ps = await db.collection('people').get();
+        var rs = await db.collection('records').get();
+        var batch = db.batch();
+        ps.docs.forEach(function (d) { batch.delete(d.ref); });
+        rs.docs.forEach(function (d) { batch.delete(d.ref); });
+        parsed.people.forEach(function (p) {
+          batch.set(db.collection('people').doc(p.id || uid()), { name: p.name, createdAt: p.createdAt || Date.now() });
+        });
+        parsed.records.forEach(function (r) {
+          batch.set(db.collection('records').doc(r.id || uid()), {
+            personId: r.personId, type: r.type, date: r.date, item: r.item,
+            amount: Number(r.amount), createdAt: r.createdAt || Date.now()
+          });
+        });
+        await batch.commit();
+      } catch (e) { showToast('匯入失敗，請稍後再試一次。'); }
+    } else {
+      people = parsed.people;
+      records = parsed.records;
+      saveLocal(); renderAll();
+    }
   }
 
   // ---------- rendering ----------
@@ -995,38 +996,47 @@
     });
   }
 
-  // ---------- storage init ----------
-  function updateStorageBadge() {
+  // ---------- init ----------
+  function updateStorageBadge(state) {
     var badge = document.getElementById('storageBadge');
     var note = document.getElementById('footerNote');
-    if (artifactCap) {
-      badge.textContent = isPublicSynced ? '公開同步' : '公開連結';
+    if (state === 'connected') {
+      badge.textContent = '雲端同步';
       badge.classList.remove('local');
       badge.classList.add('public');
-      note.textContent = '任何拿到這個連結的人都能看到最新資料，也都能新增/編輯——不需要 Claude 帳號。';
-    } else {
+      note.textContent = '任何拿到這個連結的人都能即時看到最新資料，也都能新增/編輯。';
+    } else if (state === 'local') {
       badge.textContent = '僅本機儲存';
       badge.classList.remove('public');
       badge.classList.add('local');
-      note.textContent = '⚠ 這個瀏覽器環境不支援公開同步，資料僅儲存在這個瀏覽器裡。';
+      note.textContent = '⚠ 目前連不上雲端資料庫，資料暫時僅儲存在這個瀏覽器裡。';
+    } else {
+      badge.textContent = '連線中…';
     }
   }
 
   async function initStorage() {
-    loadEmbeddedData(); // always start from what's baked into this page
     try {
-      if (window.claude && typeof window.claude.use === 'function') {
-        artifactCap = await window.claude.use('artifact');
-        downloads = await window.claude.use('downloads');
-      }
-    } catch (e) { artifactCap = null; downloads = null; }
-    if (!artifactCap && people.length === 0 && records.length === 0) {
-      // no publish capability in this view (e.g. opened outside claude.ai) — fall back
-      // to this one browser's local copy so the tool still works standalone
+      if (typeof firebase === 'undefined') throw new Error('firebase sdk not loaded');
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      await seedFirestoreIfEmpty();
+      usingFirestore = true;
+      db.collection('people').orderBy('createdAt', 'asc').onSnapshot(function (snap) {
+        people = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+        renderAll();
+      }, function () { showToast('與雲端資料庫的連線中斷了，請重新整理頁面。'); });
+      db.collection('records').onSnapshot(function (snap) {
+        records = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+        renderAll();
+      }, function () { showToast('與雲端資料庫的連線中斷了，請重新整理頁面。'); });
+      updateStorageBadge('connected');
+    } catch (e) {
+      usingFirestore = false;
       loadLocal();
+      renderAll();
+      updateStorageBadge('local');
     }
-    renderAll();
-    updateStorageBadge();
   }
 
   document.getElementById('addPersonToggle').addEventListener('click', function () {
