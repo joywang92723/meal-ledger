@@ -182,9 +182,19 @@
   .type-credit { background: var(--green-bg); color: var(--green); }
   .type-order { background: var(--red-bg); color: var(--red); }
 
-  .entry-form { display: grid; grid-template-columns: 8rem 8.5rem 8rem 7rem 8.5rem auto; gap: 0.55rem; padding: 1rem 1.2rem; align-items: stretch; }
+  .entry-form { display: grid; grid-template-columns: 8.5rem 1fr 7rem 8.5rem auto; gap: 0.55rem; padding: 0.3rem 1.2rem 1rem; align-items: stretch; }
   .entry-form button { grid-column: span 1; }
   .entry-empty { padding: 1rem 1.2rem; color: var(--ink-soft); font-size: 0.9rem; }
+
+  .person-picker-label { padding: 1rem 1.2rem 0.5rem; font-size: 0.8rem; color: var(--ink-soft); }
+  .person-chip-list { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0 1.2rem 0.9rem; }
+  .person-chip {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.35rem 0.75rem; border: 1px solid var(--border); border-radius: 999px;
+    font-size: 0.86rem; cursor: pointer; user-select: none; transition: background 0.1s, color 0.1s, border-color 0.1s;
+  }
+  .person-chip input { width: auto; margin: 0; accent-color: var(--accent); }
+  .person-chip.selected { background: var(--accent); color: #FBF3E6; border-color: var(--accent); }
 
   footer { text-align: center; font-size: 0.78rem; color: var(--ink-soft); padding-top: 0.6rem; }
   footer button.ghost { font-size: 0.78rem; }
@@ -216,6 +226,7 @@
   @media (max-width: 700px) {
     .entry-form { grid-template-columns: 1fr 1fr; }
     .entry-form button { grid-column: span 2; }
+    .person-chip { font-size: 0.82rem; padding: 0.3rem 0.65rem; }
   }
   @media (max-width: 560px) {
     .edit-grid { grid-template-columns: 1fr 1fr; }
@@ -423,6 +434,7 @@
   var showAddPerson = false;
   var deleteMode = false;
   var selectedForDelete = new Set();
+  var entrySelectedPersonIds = new Set();
 
   var LOCAL_KEY = 'meal_ledger_standalone_v1';
   var TYPE_LABEL = { credit: '儲值/還款', order: '訂餐' };
@@ -959,40 +971,64 @@
     });
   }
 
+  function personChipHtml(p) {
+    var checked = entrySelectedPersonIds.has(p.id);
+    return '<label class="person-chip' + (checked ? ' selected' : '') + '">' +
+      '<input type="checkbox" value="' + p.id + '"' + (checked ? ' checked' : '') + '>' +
+      escapeHtml(p.name) +
+      '</label>';
+  }
+
   function renderEntry() {
     var wrap = document.getElementById('entryWrap');
     if (people.length === 0) {
       wrap.innerHTML = '<div class="entry-empty">請先新增人員，才能開始記錄儲值/還款或訂餐。</div>';
       return;
     }
+    // drop any selected ids for people who no longer exist (e.g. deleted elsewhere)
+    var validIds = new Set(people.map(function (p) { return p.id; }));
+    entrySelectedPersonIds.forEach(function (id) { if (!validIds.has(id)) entrySelectedPersonIds.delete(id); });
+
     var sorted = people.slice().sort(function (a, b) { return (a.createdAt || 0) - (b.createdAt || 0); });
-    var options = '<option value="">選擇姓名</option>' + sorted.map(function (p) {
-      return '<option value="' + p.id + '">' + escapeHtml(p.name) + '</option>';
-    }).join('');
-    wrap.innerHTML = '<form class="entry-form" id="quickEntryForm">' +
-      '<select name="personId" required>' + options + '</select>' +
-      '<select name="type">' + typeOptionsHtml('credit') + '</select>' +
-      '<span class="item-field-wrap">' + itemFieldsHtml('credit', '', '') + '</span>' +
-      '<input type="number" name="amount" placeholder="金額" min="0.01" step="0.01" required>' +
-      '<input type="date" name="date" value="' + todayStr() + '" required>' +
-      '<button type="submit">新增紀錄</button>' +
+    var chipsHtml = sorted.map(personChipHtml).join('');
+    wrap.innerHTML =
+      '<div class="person-picker-label">選擇姓名（可複選，一次登記多人同一筆品項/金額）</div>' +
+      '<div class="person-chip-list" id="personChipList">' + chipsHtml + '</div>' +
+      '<form class="entry-form" id="quickEntryForm">' +
+        '<select name="type">' + typeOptionsHtml('credit') + '</select>' +
+        '<span class="item-field-wrap">' + itemFieldsHtml('credit', '', '') + '</span>' +
+        '<input type="number" name="amount" placeholder="金額" min="0.01" step="0.01" required>' +
+        '<input type="date" name="date" value="' + todayStr() + '" required>' +
+        '<button type="submit">新增紀錄</button>' +
       '</form>';
+
+    document.getElementById('personChipList').querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        var id = cb.value;
+        if (cb.checked) entrySelectedPersonIds.add(id); else entrySelectedPersonIds.delete(id);
+        cb.closest('.person-chip').classList.toggle('selected', cb.checked);
+      });
+    });
+
     var form = document.getElementById('quickEntryForm');
     wireItemFieldToggle(form);
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var f = e.target;
-      var personId = f.elements['personId'].value;
       var type = f.elements['type'].value;
       var item = type === 'credit' ? f.elements['method'].value : f.elements['itemText'].value;
       var amount = f.elements['amount'].value;
       var date = f.elements['date'].value;
-      if (!personId || !amount || Number(amount) <= 0) return;
+      var ids = Array.from(entrySelectedPersonIds);
+      if (ids.length === 0) { showToast('請至少勾選一位人員。'); return; }
+      if (!amount || Number(amount) <= 0) return;
       if (type === 'order' && !item.trim()) { showToast('請填寫訂餐的項目。'); return; }
-      addRecord(personId, type, date, item, amount);
-      f.elements['amount'].value = '';
-      f.elements['itemText'].value = '';
-      expandedIds.add(personId);
+      ids.forEach(function (personId) {
+        addRecord(personId, type, date, item, amount);
+        expandedIds.add(personId);
+      });
+      entrySelectedPersonIds = new Set();
+      renderEntry();
     });
   }
 
